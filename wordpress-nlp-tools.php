@@ -17,6 +17,7 @@ namespace ENLPTools;
 
 use \ElasticPress\Elasticsearch;
 use \ElasticPress\Indexables;
+use ParagonIE\Sodium\Core\Curve25519\Ge\P1p1;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
@@ -31,7 +32,7 @@ class ENLPTools {
 	public $pipeline_name = 'wordpress_nlp_ingester';
 	public $pipeline_description = 'A Natural Language Processing pipeline for WordPress taxonomies';
 	public $field_to_ingest = 'post_content';
-	public $entities_to_map = array( 'entities.dates', 'entities.persons', 'entities.locations' );
+	public $models_to_map = array( 'dates', 'persons', 'locations' );
 
 	public function __construct() {
 	}
@@ -39,7 +40,7 @@ class ENLPTools {
 	public function init() {
 		// core actions
 		\add_action( 'activate_plugin', array( $this, 'activate' ) );
-		\add_action( 'ep_after_index', array( $this,  'get_post_entities_from_es' ), 10, 2 );
+		\add_action( 'ep_after_bulk_index', array( $this, 'get_post_entities_from_es' ), 10, 3 );
 
 		// elasticpress filters
 		\add_filter( 'ep_index_request_path', array( $this, 'append_ingester_to_index_endpoint' ) );
@@ -47,12 +48,12 @@ class ENLPTools {
 
 		// custom actions
 		\add_action( 'enlptools_configure_ingester', array( $this, 'configure_ingester' ) );
-		\add_action( 'enlptools_configure_mapping', array( $this, 'configure_mapping' ) );
+		// \add_action( 'enlptools_configure_mapping', array( $this, 'configure_mapping' ) );
 
 		// custom filters
-		\add_filter( 'enlptools_entity_copy_to', array( $this, 'copy_to' ), 10, 2 );
+		\add_filter( 'enlptools_entity_sync_to', array( $this, 'sync_to' ), 10, 2 );
 
-		$this->entities_to_map = \apply_filters( 'enpltools_entities_to_map', $this->entities_to_map );
+		$this->models_to_map = \apply_filters( 'enpltools_models_to_map', $this->models_to_map );
 	}
 
 	/**
@@ -65,14 +66,28 @@ class ENLPTools {
 	 * With this method we are going to copy these locations to an existing taxonomy so they can be
 	 * saved back to WordPress as categories.
 	 *
-	 * @param $to
-	 * @param $entity
+	 * @param array $to
+	 * @param string $entity
 	 *
 	 * @return mixed|string
 	 */
-	public function copy_to( $to, $entity ) {
-		if ( 'entities.locations' === $entity ) {
-			return 'terms.category';
+	public function sync_to( array $to, string $entity ) {
+		if ( 'locations' === $entity ) {
+			return array(
+				'taxonomy' => 'category',
+			);
+		}
+
+		if ( 'persons' === $entity ) {
+			return array(
+				'meta_key' => 'persons',
+			);
+		}
+
+		if ( 'dates' === $entity ) {
+			return array(
+				'meta_key' => 'dates',
+			);
 		}
 
 		return $to;
@@ -89,7 +104,7 @@ class ENLPTools {
 		 */
 
 		do_action( 'enlptools_configure_ingester' );
-		do_action( 'enlptools_configure_mapping' );
+		// do_action( 'enlptools_configure_mapping' );
 	}
 
 	/**
@@ -122,16 +137,18 @@ class ENLPTools {
 
 	/**
 	 * Dynamically add the NLP tag fields to the Elasticsearch mapping without reindexing
+	 *
+	 * public function configure_mapping() {
+	 * $ep    = Elasticsearch::factory();
+	 * $index = Indexables::factory()->get( 'post' )->get_index_name();
+	 * $query = $this->map_entities();
+	 *
+	 * \add_filter( 'ep_query_request_path', array( $this, 'mapping_request_path' ) );
+	 * $ep->query( $index, null, $query, array() );
+	 * \remove_filter( 'ep_query_request_path', array( $this, 'mapping_request_path' ) );
+	 * }
+	 *
 	 */
-	public function configure_mapping() {
-		$ep = Elasticsearch::factory();
-		$index = Indexables::factory()->get( 'post' )->get_index_name();
-		$query = $this->map_entities();
-
-		\add_filter( 'ep_query_request_path', array( $this, 'mapping_request_path' ) );
-		$ep->query( $index, null, $query, array() );
-		\remove_filter( 'ep_query_request_path', array( $this, 'mapping_request_path' ) );
-	}
 
 	/**
 	 * Map ingested entities for indexing
@@ -139,18 +156,18 @@ class ENLPTools {
 	 * @return mixed
 	 */
 	public function map_entities() {
-		foreach ( $this->entities_to_map as $entity ) {
-			$query['properties'][ $entity ] = array(
-				'type'    => 'text',
-				'copy_to' => \apply_filters( 'enlptools_entity_copy_to', null, $entity ),
-			);
+		$entities        = array_flip( $this->models_to_map );
+		$mapped_entities = array();
 
-			if ( ! $query['properties'][ $entity ]['copy_to'] ) {
-				unset( $query['properties'][ $entity ]['copy_to'] );
+		foreach ( $entities as $entity ) {
+			$map_to = \apply_filters( 'enlptools_entity_sync_to', array(), $entity );
+
+			if ( $map_to ) {
+				$mapped_entities[ $entity ] = $map_to;
 			}
 		}
 
-		return $query;
+		return $mapped_entities;
 	}
 
 	/**
@@ -160,10 +177,10 @@ class ENLPTools {
 	 */
 	public function prepare_entities_to_query() {
 
-		$entities = $this->get_mapped_entities();
+		$entities  = $this->get_mapped_entities();
 		$ent_str[] = implode( ',', \array_keys( $entities ) );
 		$ent_str[] = \implode( ',', \array_values( $entities ) );
-		$ent_str = \implode( ',', $ent_str );
+		$ent_str   = \implode( ',', $ent_str );
 
 		return $ent_str;
 
@@ -175,18 +192,17 @@ class ENLPTools {
 	 * @param $document
 	 * @param $return
 	 */
-	public function get_post_entities_from_es( $document, $return ) {
-
-		error_log( \var_export( $document, true ) );
-		$ep = Elasticsearch::factory();
-		$index = Indexables::factory()->get( 'post' )->get_index_name();
+	public function get_post_entities_from_es( $documents, $indexable, $return ) {
+		$ep       = Elasticsearch::factory();
+		$index    = Indexables::factory()->get( 'post' )->get_index_name();
 		$entities = $this->prepare_entities_to_query();
+		$body     = \json_encode( array( 'ids' => $documents ) );
 
-		$request = $ep->remote_request( $index . '/_doc/' . $post_id  . '?_source=' . $entities );
-		$body = \json_decode( $request['body'] );
+		$request  = $ep->remote_request( $index . '/_mget?_source=' . $entities, $body );
+		$response = \json_decode( $request['body'] );
 
-		if ( ! empty( $body->_source->entities ) ) {
-			$this->save_entities_to_wp( $post_id, $body->_source->entities );
+		if ( ! empty( $response->docs ) ) {
+			$this->save_entities_to_wp( $response->docs );
 		}
 	}
 
@@ -196,26 +212,33 @@ class ENLPTools {
 	 * @param $post_id
 	 * @param $entities
 	 */
-	public function save_entities_to_wp( $post_id, $entities ) {
+	public function save_entities_to_wp( $docs ) {
 		$entity_mapping = $this->get_mapped_entities();
 
-		foreach ( $entity_mapping as $entity => $mapping ) {
-			$map = \explode( '.', $mapping );
-			$ent = \explode( '.', $entity );
+		foreach ( $docs as $doc ) {
+			if ( ! empty( $doc->_source->entities ) ) {
+				$entities = $doc->_source->entities;
 
-			if ( 'terms' === $map[0] && ! empty( $entities->{$ent[1]} ) ) {
-				\wp_set_object_terms( $post_id, $entities->{$ent[1]}, $map[1], true );
+				foreach ( $entity_mapping as $entity => $mapping ) {
+					$map = \explode( '.', $mapping );
+					$ent = \explode( '.', $entity );
+
+					if ( 'terms' === $map[0] && ! empty( $entities->{$ent[1]} ) ) {
+						\wp_set_object_terms( $doc->_id, $entities->{$ent[1]}, $map[1], true );
+					}
+				}
+
 			}
 		}
 	}
 
 	public function get_mapped_entities() {
-		$entities = $this->map_entities();
+		$entities        = $this->models_to_map;
 		$mapped_entities = array();
 
-		foreach( $entities['properties'] as $key => $entity ) {
-			if ( ! empty( $entity['copy_to'] ) ) {
-				$mapped_entities[ $key ] = $entity['copy_to'];
+		foreach ( $entities as $key => $entity ) {
+			if ( ! empty( $entity ) ) {
+				$mapped_entities[ $key ] = $entity['sync_to'];
 			}
 		}
 
@@ -253,11 +276,14 @@ class ENLPTools {
 	 * @return string
 	 *
 	 * @uses ep_query_request_path
+	 *
+	 * public function mapping_request_path() {
+	 * $index = Indexables::factory()->get( 'post' )->get_index_name();
+	 *
+	 * return $index . '/_mapping';
+	 * }
+	 *
 	 */
-	public function mapping_request_path() {
-		$index = Indexables::factory()->get( 'post' )->get_index_name();
-		return $index . '/_mapping';
-	}
 
 	/**
 	 * Change the request method to PUT when configuring the ingest pipeline
@@ -269,11 +295,14 @@ class ENLPTools {
 	 * @uses http_request_args
 	 */
 	public function request_method( $args ) {
+		/*
 		if ( \doing_action( 'enlptools_configure_mapping' ) ) {
 			$args['method'] = 'GET';
 		} else {
 			$args['method'] = 'PUT';
 		}
+		*/
+		$args['method'] = 'PUT';
 
 		return $args;
 	}
