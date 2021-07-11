@@ -28,7 +28,6 @@ ingest.opennlp.model.file.locations: en-ner-locations.bin
 
 ```php
 add_filter( 'enlptools_entity_copy_to', array( $this, 'enlptools_copy_to' ), 10, 2 );
-
 /**
  * Example usage: maps any locations extracted using NLP to the Category taxonomy
  *
@@ -39,25 +38,25 @@ add_filter( 'enlptools_entity_copy_to', array( $this, 'enlptools_copy_to' ), 10,
  * With this method we are going to copy these locations to an existing taxonomy so they can be
  * saved back to WordPress as categories.
  *
- * @param $to
- * @param $entity
+ * @param string $to     current mapping, defaults to an empty string
+ * @param string $entity the entity mapped to $to
  *
- * @return mixed|string
+ * @return string
  */
-function enlptools_copy_to( $to, $entity ) {
-	if ( 'entities.locations' === $entity ) {
-		return 'terms.category'; // maps saves extracted locations to the `category` taxonomy
-	}
+function enlptools_sync_to( string $to, string $entity ) {
+    if ( 'locations' === $entity ) {
+        return 'terms.category';
+    }
 
-	if ( 'entities.dates' === $entity ) {
-		return 'terms.dates'; // maps saves extracted dates to the `dates` taxonomy
-	}
+    if ( 'persons' === $entity ) {
+        return 'meta.persons';
+    }
 
-	if ( 'entities.persons' === $entity ) {
-		return 'meta.persons'; // maps saves extracted persons to a meta key `persons`
-	}
+    if ( 'dates' === $entity ) {
+        return 'meta.dates';
+    }
 
-	return $to;
+    return $to;
 }
 ```
 
