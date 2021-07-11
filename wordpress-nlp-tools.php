@@ -90,33 +90,31 @@ class ENLPTools {
 
 		$path = '_ingest/pipeline/' . $this->pipeline_name;
 
-		$request  = $ep->remote_request( $path, $args );
-		$response = \json_decode( $request['body'] );
+		$ep->remote_request( $path, $args );
 	}
 
 	/**
 	 * Dynamically add the NLP tag fields to the Elasticsearch mapping without reindexing
 	 */
-	 public function configure_mapping() {
-		 $ep    = Elasticsearch::factory();
-		 $index = Indexables::factory()->get( 'post' )->get_index_name();
-		 $query = $this->prepare_entities_to_include_in_es_mapping();
+	public function configure_mapping() {
+		$ep    = Elasticsearch::factory();
+		$index = Indexables::factory()->get( 'post' )->get_index_name();
+		$query = $this->prepare_entities_to_include_in_es_mapping();
 
-		 $args = array(
-			 'body'   => \wp_json_encode( $query ),
-			 'method' => 'POST',
-		 );
+		$args = array(
+			'body'   => \wp_json_encode( $query ),
+			'method' => 'POST',
+		);
 
-		 $path = $index . '/_mapping';
+		$path = $index . '/_mapping';
 
-		 $request  = $ep->remote_request( $path, $args );
-		 $response = \json_decode( $request['body'] );
-	 }
+		$ep->remote_request( $path, $args );
+	}
 
 	/**
-	 * Map ingested entities for indexing
+	 * Map ingested entities to their WP counterparts
 	 *
-	 * @return mixed
+	 * @return array
 	 */
 	public function map_entities() {
 		$entities        = array_flip( $this->models_to_map );
@@ -139,11 +137,11 @@ class ENLPTools {
 	 * @return string
 	 */
 	public function prepare_entities_to_include_in_es_mapping() {
-		$entities  = $this->models_to_map;
-		$mapping = array();
+		$entities = $this->models_to_map;
+		$mapping  = array();
 
 		foreach ( $entities as $entity ) {
-			$mapping['properties'][ 'entities.'. $entity ] = array(
+			$mapping['properties'][ 'entities.' . $entity ] = array(
 				'type' => 'text',
 			);
 
@@ -168,10 +166,9 @@ class ENLPTools {
 	/**
 	 * Retrieves a single document from Elasticsearch to save its entities to WP
 	 *
-	 * @param $document
-	 * @param $return
+	 * @param array $documents a list of document ids updated in the last bulk index
 	 */
-	public function get_post_entities_from_es( $documents, $indexable, $return ) {
+	public function get_post_entities_from_es( $documents ) {
 		$ep       = Elasticsearch::factory();
 		$index    = Indexables::factory()->get( 'post' )->get_index_name();
 		$entities = $this->prepare_entities_to_query();
@@ -194,17 +191,16 @@ class ENLPTools {
 	/**
 	 * Saves entities found in Elasticsearch back to WP
 	 *
-	 * @param $post_id
-	 * @param $entities
+	 * @param array $docs a list of documents to sync data from ES to WP
 	 */
 	public function save_entities_to_wp( $docs ) {
 		$entity_mapping = $this->map_entities();
-		$ids = array();
+		$ids            = array();
 
 		foreach ( $docs as $doc ) {
 			if ( ! empty( $doc->_source->entities ) ) {
 				$entities = $doc->_source->entities;
-				$ids[] = $doc->_id;
+				$ids[]    = $doc->_id;
 
 				foreach ( $entity_mapping as $entity => $mapping ) {
 					$map = \explode( '.', $mapping );
@@ -227,6 +223,13 @@ class ENLPTools {
 		\add_action( 'ep_after_bulk_index', array( $this, 'get_post_entities_from_es' ), 10, 3 );
 	}
 
+	/**
+	 * Sanitize strings to store as meta values
+	 *
+	 * @param array $array a list of values returned from ES
+	 *
+	 * @return array
+	 */
 	public function sanitize_array_to_store( $array ) {
 		return array_map( 'sanitize_text_field', $array );
 	}
