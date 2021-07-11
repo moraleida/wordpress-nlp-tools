@@ -24,3 +24,38 @@ ingest.opennlp.model.file.locations: en-ner-locations.bin
 
 2. Install and activate this plugin
 3. Add the following code to your `functions.php` to map the entities extracted to any existing taxonomies (optional):
+
+```php
+add_filter( 'enlptools_entity_copy_to', array( $this, 'enlptools_copy_to' ), 10, 2 );
+
+/**
+ * Example usage: maps any locations extracted using NLP to the Category taxonomy
+ *
+ * Extracted entities are saved in the `entities` key of the stored document in Elasticsearch
+ * so `entities.locations` contains all locations found in the document. However, this content
+ * only exists in Elasticsearch.
+ *
+ * With this method we are going to copy these locations to an existing taxonomy so they can be
+ * saved back to WordPress as categories.
+ *
+ * @param $to
+ * @param $entity
+ *
+ * @return mixed|string
+ */
+function enlptools_copy_to( $to, $entity ) {
+	if ( 'entities.locations' === $entity ) {
+		return 'terms.category'; // maps saves extracted locations to the `category` taxonomy
+	}
+
+	if ( 'entities.dates' === $entity ) {
+		return 'terms.dates'; // maps saves extracted dates to the `dates` taxonomy
+	}
+
+	if ( 'entities.persons' === $entity ) {
+		return 'meta.persons'; // maps saves extracted persons to a meta key `persons`
+	}
+
+	return $to;
+}
+```
