@@ -38,7 +38,7 @@ ingest.opennlp.model.file.locations: en-ner-locations.bin
 4. Add the following code to your `functions.php` to map the entities extracted to any existing taxonomies (optional):
 
 ```php
-add_filter( 'enlptools_entity_copy_to', array( $this, 'enlptools_copy_to' ), 10, 2 );
+add_filter( 'enlptools_entity_sync_to', array( $this, 'enlptools_sync_to' ), 10, 2 );
 /**
  * Example usage: maps any locations extracted using NLP to the Category taxonomy
  *
