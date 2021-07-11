@@ -16,7 +16,7 @@ This plugin is just a connector, Elasticsearch is doing all the heavy lifting.
 
 ## Requirements:
 - Elasticsearch 6.2.2+ running in a server you can install the models to
-- ElasticPress
+- ElasticPress 3.6+
 
 ## Installation
 1. Follow the installation steps for the [Elasticsearch OpenNLP Ingest Processor](https://github.com/spinscale/elasticsearch-ingest-opennlp): install a processor version matching your Elasticsearch version, and don't forget to download the built-in modules. Do this in the server running Elasticsearch, not your webserver. e.g:
