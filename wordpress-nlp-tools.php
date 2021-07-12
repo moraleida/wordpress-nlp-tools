@@ -1,32 +1,33 @@
 <?php
 /**
- * Plugin Name:       ElasticPress Natural Language Processing Tools
- * Plugin URI:        https://github.com/moraleida/elasticpress-nlp-tools
+ * Plugin Name:       WordPress Natural Language Processing Tools
+ * Plugin URI:        https://github.com/moraleida/wordpress-nlp-tools
  * Description:       A toolkit for using self-hosted Natural Language Processing in WordPress
  * Version:           0.0.1
  * Requires PHP:      7.0
  * Author:            Ricardo Moraleida
  * License:           GPL v3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain:       enlptag
+ * Text Domain:       wnlptools
  *
- * @package  elasticpress-nlp-tools
+ * @package  wordpress-nlp-tools
  */
 
-namespace ENLPTools;
+namespace WNLPTools;
 
 use \ElasticPress\Elasticsearch;
 use \ElasticPress\Indexables;
+use \ElasticPress\Indexable;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-define( 'ENLPTOOLS_URL', plugin_dir_url( __FILE__ ) );
-define( 'ENLPTOOLS_PATH', plugin_dir_path( __FILE__ ) );
-define( 'ENLPTOOLS_VERSION', '0.0.1' );
+define( 'WNLPTOOLS_URL', plugin_dir_url( __FILE__ ) );
+define( 'WNLPTOOLS_PATH', plugin_dir_path( __FILE__ ) );
+define( 'WNLPTOOLS_VERSION', '0.0.1' );
 
-class ENLPTools {
+class WNLPTools {
 
 	public $pipeline_name = 'wordpress_nlp_ingester';
 	public $pipeline_description = 'A Natural Language Processing pipeline for WordPress taxonomies';
@@ -46,8 +47,8 @@ class ENLPTools {
 		\add_filter( 'ep_bulk_index_request_path', array( $this, 'append_ingester_to_index_endpoint' ) );
 
 		// custom actions
-		\add_action( 'enlptools_configure_ingester', array( $this, 'configure_ingester' ) );
-		\add_action( 'enlptools_configure_mapping', array( $this, 'configure_mapping' ) );
+		\add_action( 'wnlptools_configure_ingester', array( $this, 'configure_ingester' ) );
+		\add_action( 'wnlptools_configure_mapping', array( $this, 'configure_mapping' ) );
 
 		$this->models_to_map = \apply_filters( 'enpltools_models_to_map', $this->models_to_map );
 	}
@@ -62,8 +63,8 @@ class ENLPTools {
 		 * TODO: Require OpenNLP Configs
 		 */
 
-		do_action( 'enlptools_configure_ingester' );
-		do_action( 'enlptools_configure_mapping' );
+		do_action( 'wnlptools_configure_ingester' );
+		do_action( 'wnlptools_configure_mapping' );
 	}
 
 	/**
@@ -121,7 +122,7 @@ class ENLPTools {
 		$mapped_entities = array();
 
 		foreach ( $entities as $entity => $value ) {
-			$map_to = \apply_filters( 'enlptools_entity_sync_to', '', $entity );
+			$map_to = \apply_filters( 'wnlptools_entity_sync_to', '', $entity );
 
 			if ( $map_to ) {
 				$mapped_entities[ 'entities.' . $entity ] = $map_to;
@@ -249,5 +250,5 @@ class ENLPTools {
 	}
 }
 
-$plugin = new ENLPTools();
+$plugin = new WNLPTools();
 $plugin->init();
