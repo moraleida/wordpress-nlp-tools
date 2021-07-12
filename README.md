@@ -4,7 +4,7 @@ A toolkit for using self-hosted Natural Language Processing in WordPress
 ### This plugin is a Proof of Concept and not ready for production
 
 ## What does it do?
-This plugin creates a custom Ingestor in your Elasticsearch cluster, prepared to process the `post_content` from your posts using Open Source machine learning models created by the contributors to Apache OpenNLP. It also modifies your index mapping to account for the new entities extracted. 
+This plugin creates a custom Ingestor in your Elasticsearch cluster, prepared to process the `post_content` from your posts using Open Source machine learning models created by the contributors to [Apache OpenNLP](https://opennlp.apache.org/). It also modifies your index mapping to account for the new entities extracted. 
 
 With the standard installation instructions, it will look for names of people and places, as well as dates, in any text processed, and save them to the Elasticsearch document representing your post. If the `sync_to` filter in step 4 is used, the entities extracted are saved back to the WordPress database as taxonomy terms and/or post meta.
 
@@ -15,8 +15,8 @@ With the standard installation instructions, it will look for names of people an
 This plugin is just a connector, Elasticsearch is doing all the heavy lifting.
 
 ## Requirements:
-- Elasticsearch 6.2.2+ running in a server you can install the models to
-- ElasticPress 3.6+
+- [Elasticsearch](https://github.com/elastic/elasticsearch) 6.2.2+ running in a server you can install the models to
+- [ElasticPress](https://github.com/10up/ElasticPress) 3.6+
 
 ## Installation
 1. Follow the installation steps for the [Elasticsearch OpenNLP Ingest Processor](https://github.com/spinscale/elasticsearch-ingest-opennlp): install a processor version matching your Elasticsearch version, and don't forget to download the built-in modules. Do this in the server running Elasticsearch, not your webserver. e.g:
