@@ -8,16 +8,17 @@
  * Author:            Ricardo Moraleida
  * License:           GPL v3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain:       wnlptools
+ * Text Domain:       wpnlptools
  *
  * @package  wordpress-nlp-tools
  */
 
-namespace WNLPTools;
+namespace WPNLPT;
 
 use \ElasticPress\Elasticsearch;
 use \ElasticPress\Indexables;
 use \ElasticPress\Indexable;
+use function ElasticPress\Utils\get_host;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
@@ -27,7 +28,7 @@ define( 'WNLPTOOLS_URL', plugin_dir_url( __FILE__ ) );
 define( 'WNLPTOOLS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WNLPTOOLS_VERSION', '0.0.1' );
 
-class WNLPTools {
+class Mai {
 
 	public $pipeline_name = 'wordpress_nlp_ingester';
 	public $pipeline_description = 'A Natural Language Processing pipeline for WordPress taxonomies';
@@ -40,15 +41,17 @@ class WNLPTools {
 	public function init() {
 		// core actions
 		\add_action( 'activate_plugin', array( $this, 'activate' ) );
-		\add_action( 'ep_after_bulk_index', array( $this, 'get_post_entities_from_es' ), 10, 3 );
+//		\add_action( 'ep_after_bulk_index', array( $this, 'get_post_entities_from_es' ), 10, 3 );
+		add_action( 'plugins_loaded', array( $this, 'create_webhook') );
 
 		// elasticpress filters
 		\add_filter( 'ep_index_request_path', array( $this, 'append_ingester_to_index_endpoint' ) );
 		\add_filter( 'ep_bulk_index_request_path', array( $this, 'append_ingester_to_index_endpoint' ) );
 
 		// custom actions
-		\add_action( 'wnlptools_configure_ingester', array( $this, 'configure_ingester' ) );
-		\add_action( 'wnlptools_configure_mapping', array( $this, 'configure_mapping' ) );
+		\add_action( 'wpnlptools_configure_ingester', array( $this, 'configure_ingester' ) );
+		\add_action( 'wpnlptools_configure_mapping', array( $this, 'configure_mapping' ) );
+		\add_action( 'wpnlptools_configure_webhook', array( $this, 'configure_webhook' ) );
 
 		$this->models_to_map = \apply_filters( 'enpltools_models_to_map', $this->models_to_map );
 	}
@@ -63,8 +66,9 @@ class WNLPTools {
 		 * TODO: Require OpenNLP Configs
 		 */
 
-		do_action( 'wnlptools_configure_ingester' );
-		do_action( 'wnlptools_configure_mapping' );
+		do_action( 'wpnlptools_configure_ingester' );
+		do_action( 'wpnlptools_configure_mapping' );
+		do_action( 'wpnlptools_configure_webhook' );
 	}
 
 	/**
@@ -113,6 +117,63 @@ class WNLPTools {
 	}
 
 	/**
+	 * Dynamically configure Elasticsearch Watcher to trigger the webhook when a new document is indexed
+	 */
+	public function configure_webhook() {
+		$ep    = Elasticsearch::factory();
+		$index = Indexables::factory()->get( 'post' )->get_index_name();
+		$query = array(
+			'trigger' => array(
+				'schedule' => array(
+					'hourly' => array(
+						'minute' => 13,
+					),
+				),
+			),
+			'input'   => array(
+				'search' => array(
+					'request' => array(
+						'indices' => array( $index ),
+						'body' => array(
+							'query' => array(
+								'term' => array(
+									'processed' => false,
+								)
+							)
+						)
+					)
+				),
+			),
+			'actions' => array(
+				'webhook_processed' => array(
+					'webhook' => array(
+						'method' => 'POST',
+						'host' => \gethostname(),
+						'port' => 80,
+						'path' => '/wp-json/wpnlptools/v1/webhook',
+						'headers' => array(
+							'Content-Type' => 'application/json'
+						),
+						'body' => array(
+							'post_id' => '{{ctx.payload._id}}'
+						)
+					)
+				)
+				)
+			)
+		);
+
+		$args = array(
+			'body'   => \wp_json_encode( $query ),
+			'method' => 'PUT',
+		);
+
+		$path = $index . '/_watcher/watch/' . $this->pipeline_name;
+
+		$ep->remote_request( $path, $args );
+	}
+
+	/**
 	 * Map ingested entities to their WP counterparts
 	 *
 	 * @return array
@@ -122,7 +183,7 @@ class WNLPTools {
 		$mapped_entities = array();
 
 		foreach ( $entities as $entity => $value ) {
-			$map_to = \apply_filters( 'wnlptools_entity_sync_to', '', $entity );
+			$map_to = \apply_filters( 'wpnlptools_entity_sync_to', '', $entity );
 
 			if ( $map_to ) {
 				$mapped_entities[ 'entities.' . $entity ] = $map_to;
@@ -248,7 +309,15 @@ class WNLPTools {
 	public function append_ingester_to_index_endpoint( $path ) {
 		return $path . '?pipeline=' . $this->pipeline_name;
 	}
+
+	public function create_webhook() {
+		\register_rest_route( 'wpnlptools/v1', '/webhook', array(
+			'methods'  => 'POST',
+			'callback' => array( $this, 'webhook' ),
+			'permissions_callback' => array,
+		) );
+	}
 }
 
-$plugin = new WNLPTools();
+$plugin = new Main();
 $plugin->init();
