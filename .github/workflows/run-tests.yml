@@ -1,0 +1,50 @@
+name: NLP Tools Test Workflow
+run-name: ${{ github.actor }} is running tests
+on: [push]
+jobs:
+  tests:
+    strategy:
+      matrix:
+        suite:
+          - unit
+          - wpunit
+          - functional
+          - acceptance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout plugin
+        uses: actions/checkout@v2
+      # -------------------------------
+      # Set up PHP
+      # -------------------------------
+      - name: Configure PHP environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+      # -------------------------------
+      # Changed files
+      # -------------------------------
+      - name: Check changed files
+        id: skip
+        run: |
+          num_php_files=$(git diff ${{ github.event.pull_request.base.sha }} HEAD --name-only | grep -P "\.php" | wc -l)
+          if [[ -z "$num_php_files" ]]; then
+            echo "::set-output name=value::1"
+          elif [[ "$num_php_files" == "0" || "$num_php_files" == "" ]]; then
+            echo "::set-output name=value::1"
+          else
+            echo "::set-output name=value::0"
+          fi
+      # -------------------------------
+      # Set up containers
+      # -------------------------------
+      - name: Setup bitnami containers
+        run: |
+          curl -sSL https://raw.githubusercontent.com/bitnami/containers/main/bitnami/wordpress/docker-compose.yml > docker-compose.yml
+          docker-compose up -d
+      # -------------------------------
+      # Changed files
+      # -------------------------------
+      - name: Run Tests
+        run: |
+          vendor/bin/codecept run
