@@ -8,26 +8,25 @@
  * Author:            Ricardo Moraleida
  * License:           GPL v3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain:       wnlptools
+ * Text Domain:       nlp_tools
  *
  * @package  wordpress-nlp-tools
  */
 
-namespace WNLPTools;
-
 use \ElasticPress\Elasticsearch;
 use \ElasticPress\Indexables;
-use \ElasticPress\Indexable;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-define( 'WNLPTOOLS_URL', plugin_dir_url( __FILE__ ) );
-define( 'WNLPTOOLS_PATH', plugin_dir_path( __FILE__ ) );
-define( 'WNLPTOOLS_VERSION', '0.0.1' );
+define( 'NLP_TOOLS_URL', plugin_dir_url( __FILE__ ) );
+define( 'NLP_TOOLS_PATH', plugin_dir_path( __FILE__ ) );
+define( 'NLP_TOOLS_VERSION', '0.0.1' );
 
-class WNLPTools {
+include_once NLP_TOOLS_PATH . 'vendor/autoload.php';
+
+class NLP_Tools {
 
 	public $pipeline_name = 'wordpress_nlp_ingester';
 	public $pipeline_description = 'A Natural Language Processing pipeline for WordPress taxonomies';
@@ -47,10 +46,12 @@ class WNLPTools {
 		\add_filter( 'ep_bulk_index_request_path', array( $this, 'append_ingester_to_index_endpoint' ) );
 
 		// custom actions
-		\add_action( 'wnlptools_configure_ingester', array( $this, 'configure_ingester' ) );
-		\add_action( 'wnlptools_configure_mapping', array( $this, 'configure_mapping' ) );
+		\add_action( 'nlp_tools_configure_ingester', array( $this, 'configure_ingester' ) );
+		\add_action( 'nlp_tools_configure_mapping', array( $this, 'configure_mapping' ) );
 
 		$this->models_to_map = \apply_filters( 'enpltools_models_to_map', $this->models_to_map );
+
+		\NLP_Tools\Hooks::init();
 	}
 
 	/**
@@ -63,8 +64,8 @@ class WNLPTools {
 		 * TODO: Require OpenNLP Configs
 		 */
 
-		do_action( 'wnlptools_configure_ingester' );
-		do_action( 'wnlptools_configure_mapping' );
+		do_action( 'nlp_tools_configure_ingester' );
+		do_action( 'nlp_tools_configure_mapping' );
 	}
 
 	/**
@@ -99,6 +100,12 @@ class WNLPTools {
 	 */
 	public function configure_mapping() {
 		$ep    = Elasticsearch::factory();
+		$post = Indexables::factory()->get('post');
+
+		if ( ! $post ) {
+			return;
+		}
+
 		$index = Indexables::factory()->get( 'post' )->get_index_name();
 		$query = $this->prepare_entities_to_include_in_es_mapping();
 
@@ -122,7 +129,7 @@ class WNLPTools {
 		$mapped_entities = array();
 
 		foreach ( $entities as $entity => $value ) {
-			$map_to = \apply_filters( 'wnlptools_entity_sync_to', '', $entity );
+			$map_to = \apply_filters( 'nlp_tools_entity_sync_to', '', $entity );
 
 			if ( $map_to ) {
 				$mapped_entities[ 'entities.' . $entity ] = $map_to;
@@ -250,5 +257,5 @@ class WNLPTools {
 	}
 }
 
-$plugin = new WNLPTools();
+$plugin = new NLP_Tools();
 $plugin->init();

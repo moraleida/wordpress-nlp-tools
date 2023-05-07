@@ -3,7 +3,7 @@
   "description": "A toolkit for using self-hosted Natural Language Processing in WordPress",
   "autoload": {
     "psr-4": {
-      "WPNLPT\\": "src/"
+      "NLP_Tools\\": "src/"
     }
   },
   "authors": [
