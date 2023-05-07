@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout plugin
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          path: wnlp_tools
       # -------------------------------
       # Set up PHP
       # -------------------------------
@@ -47,7 +49,7 @@ jobs:
       # -------------------------------
       - name: Copy files
         run: |
-          mv wordpress-nlp-tools wordpress_data/wp-content/plugins/
+          mv wnlp_tools wordpress_data/wp-content/plugins/
       # -------------------------------
       # Build
       # -------------------------------
