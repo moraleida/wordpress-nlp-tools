@@ -1,5 +1,7 @@
 # ignore node dependency directories
 node_modules/
+vendor/
+roadmap.md
 
 # ignore log files and databases
 *.log

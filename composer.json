@@ -1,0 +1,25 @@
+{
+  "name": "moraleida/wordpress-nlp-tools",
+  "description": "A toolkit for using self-hosted Natural Language Processing in WordPress",
+  "autoload": {
+    "psr-4": {
+      "WPNLPT\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Ricardo Moraleida",
+      "email": "moraleida@gmail.com"
+    }
+  ],
+  "require-dev": {
+    "lucatume/wp-browser": "^3.1",
+    "codeception/module-asserts": "^1.0",
+    "codeception/module-phpbrowser": "^1.0",
+    "codeception/module-webdriver": "^1.0",
+    "codeception/module-db": "^1.0",
+    "codeception/module-filesystem": "^1.0",
+    "codeception/module-cli": "^1.0",
+    "codeception/util-universalframework": "^1.0"
+  }
+}
