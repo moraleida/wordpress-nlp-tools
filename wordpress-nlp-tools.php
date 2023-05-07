@@ -28,6 +28,8 @@ include_once NLP_TOOLS_PATH . 'vendor/autoload.php';
 
 class NLP_Tools {
 
+	const TEXTDOMAIN = 'nlp_tools';
+
 	public $pipeline_name = 'wordpress_nlp_ingester';
 	public $pipeline_description = 'A Natural Language Processing pipeline for WordPress taxonomies';
 	public $field_to_ingest = 'post_content';
