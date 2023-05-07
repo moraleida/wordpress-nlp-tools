@@ -43,8 +43,20 @@ jobs:
           curl -sSL https://raw.githubusercontent.com/bitnami/containers/main/bitnami/wordpress/docker-compose.yml > docker-compose.yml
           docker-compose up -d
       # -------------------------------
-      # Changed files
+      # Copy files inside the bound volume
+      # -------------------------------
+      - name: Copy files
+        run: |
+          mv wordpress-nlp-tools wordpress_data/wp-content/plugins/
+      # -------------------------------
+      # Build
       # -------------------------------
       - name: Run Tests
         run: |
-          vendor/bin/codecept run
+          docker compose exec -it wordpress bash -c "cd /bitnami/wordpress/wp-content/plugins/wordpress-nlp-tools && composer install"
+      # -------------------------------
+      # Run
+      # -------------------------------
+      - name: Run Tests
+        run: |
+          docker compose exec -it wordpress bash -c "cd /bitnami/wordpress/wp-content/plugins/wordpress-nlp-tools && vendor/bin/codecept run ${{ matrix.suite }}" 
