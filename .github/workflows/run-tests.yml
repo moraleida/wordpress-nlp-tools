@@ -43,7 +43,7 @@ jobs:
       # -------------------------------
       - name: Run Tests
         run: |
-          docker compose exec -it wordpress bash -c "cd /bitnami/wordpress/wp-content/plugins/wordpress-nlp-tools && composer install"
+          docker compose exec -it wordpress bash -c "cd /bitnami/wordpress/wp-content/plugins/wordpress-nlp-tools && ls -la && composer install"
       # -------------------------------
       # Run
       # -------------------------------
