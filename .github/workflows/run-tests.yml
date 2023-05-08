@@ -42,6 +42,7 @@ jobs:
       # -------------------------------
       - name: Setup bitnami containers
         run: |
+          mkdir wordpress_data
           curl -sSL https://raw.githubusercontent.com/bitnami/containers/main/bitnami/wordpress/docker-compose.yml > docker-compose.yml
           docker-compose up -d
       # -------------------------------
