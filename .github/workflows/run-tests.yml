@@ -35,6 +35,8 @@ jobs:
       # -------------------------------
       - name: Setup bitnami containers
         run: |
+          export COMPOSER_HOME=$(pwd)
+          sudo apt install -y unzip
           mv wnlp_tools/docker-compose.yml .
           docker-compose up -d
       # -------------------------------
