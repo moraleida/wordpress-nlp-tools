@@ -48,7 +48,9 @@ jobs:
       # Copy files inside the bound volume
       # -------------------------------
       - name: Copy files
-        run: |
+        run: |wordpress
+          pwd
+          ls -la
           mv wnlp_tools wordpress_data/wp-content/plugins/
       # -------------------------------
       # Build
