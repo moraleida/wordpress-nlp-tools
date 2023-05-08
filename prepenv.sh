@@ -1,0 +1,1 @@
+export COMPOSER_HOME=$(pwd) && sudo apt install -y unzip && composer install
