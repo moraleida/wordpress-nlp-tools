@@ -35,7 +35,6 @@ jobs:
       # -------------------------------
       - name: Setup bitnami containers
         run: |
-          mkdir wordpress_data
           mv wnlp_tools/docker-compose.yml .
           docker-compose up -d
       # -------------------------------

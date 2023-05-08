@@ -18,7 +18,7 @@ services:
       - '443:8443'
     volumes:
         - 'wordpress_data:/bitnami/wordpress'
-        - ./nlptools:/bitnami/wordpress/wp-content/plugins/wordpress-nlp-tools
+        - ./wnlp_tools:/bitnami/wordpress/wp-content/plugins/wordpress-nlp-tools
     depends_on:
       - mariadb
     environment:
