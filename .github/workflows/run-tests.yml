@@ -17,13 +17,6 @@ jobs:
         with:
           path: wnlp_tools
       # -------------------------------
-      # Set up PHP
-      # -------------------------------
-      - name: Configure PHP environment
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 7.4
-      # -------------------------------
       # Changed files
       # -------------------------------
       - name: Check changed files
@@ -45,14 +38,6 @@ jobs:
           mkdir wordpress_data
           mv wnlp_tools/docker-compose.yml .
           docker-compose up -d
-      # -------------------------------
-      # Copy files inside the bound volume
-      # -------------------------------
-      - name: Copy files
-        run: |
-          pwd
-          ls -la
-          mv wnlp_tools wordpress_data/wp-content/plugins/
       # -------------------------------
       # Build
       # -------------------------------
